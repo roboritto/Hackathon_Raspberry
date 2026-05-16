@@ -11,6 +11,7 @@ class MedicationItem {
   final int hour;
   final int minute;
   bool isTaken;
+  bool isAlarmSet;
 
   MedicationItem({
     required this.id,
@@ -20,6 +21,7 @@ class MedicationItem {
     required this.hour,
     required this.minute,
     this.isTaken = false,
+    this.isAlarmSet = false,
   });
 }
 
@@ -39,33 +41,42 @@ class _MedicationScreenState extends State<MedicationScreen> {
     super.initState();
     _medications = [
       MedicationItem(
-          id: 1,
-          name: 'Metformin',
-          dosage: '500mg',
-          schedule: '8:00 am — after breakfast',
-          hour: 8,
-          minute: 0),
+        id: 1,
+        name: 'Metformin',
+        dosage: '500mg',
+        schedule: '8:00 am — after breakfast',
+        hour: 8,
+        minute: 0,
+      ),
       MedicationItem(
-          id: 2,
-          name: 'Amlodipine',
-          dosage: '5mg',
-          schedule: '1:00 pm — after lunch',
-          hour: 13,
-          minute: 0),
+        id: 2,
+        name: 'Amlodipine',
+        dosage: '5mg',
+        schedule: '1:00 pm — after lunch',
+        hour: 13,
+        minute: 0,
+      ),
       MedicationItem(
-          id: 3,
-          name: 'Atorvastatin',
-          dosage: '20mg',
-          schedule: '9:00 pm — before bed',
-          hour: 21,
-          minute: 0),
+        id: 3,
+        name: 'Atorvastatin',
+        dosage: '20mg',
+        schedule: '9:00 pm — before bed',
+        hour: 21,
+        minute: 0,
+      ),
     ];
   }
 
   tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
     final now = tz.TZDateTime.now(tz.local);
-    var scheduled =
-        tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+    var scheduled = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
     if (scheduled.isBefore(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
@@ -96,6 +107,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
     );
 
     if (mounted) {
+      setState(() => med.isAlarmSet = true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Alarm set for ${med.name}'),
@@ -119,8 +131,28 @@ class _MedicationScreenState extends State<MedicationScreen> {
     }
   }
 
+  Future<void> _toggleAlarm(MedicationItem med) async {
+    if (med.isAlarmSet) {
+      await flnPlugin.cancel(med.id);
+      setState(() => med.isAlarmSet = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Alarm cancelled for ${med.name}'),
+            backgroundColor: const Color(0xFF854F0B),
+          ),
+        );
+      }
+    } else {
+      await _scheduleAlarm(med);
+    }
+  }
+
   void _toggleTaken(MedicationItem med) {
-    setState(() => med.isTaken = !med.isTaken);
+    setState(() {
+      med.isTaken = !med.isTaken;
+      med.isAlarmSet = false;
+    });
     if (med.isTaken) {
       flnPlugin.cancel(med.id);
     } else {
@@ -128,10 +160,116 @@ class _MedicationScreenState extends State<MedicationScreen> {
     }
   }
 
+  String _formatTimeOfDay(BuildContext context, TimeOfDay time) {
+    return time.format(context);
+  }
+
+  Future<void> _showAddMedicationDialog() async {
+    final nameController = TextEditingController();
+    final dosageController = TextEditingController();
+    TimeOfDay selectedTime = const TimeOfDay(hour: 8, minute: 0);
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Add Medication'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Medication Name',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: dosageController,
+                    decoration: const InputDecoration(labelText: 'Dosage'),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Time: ${_formatTimeOfDay(context, selectedTime)}',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          final picked = await showTimePicker(
+                            context: context,
+                            initialTime: selectedTime,
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              selectedTime = picked;
+                            });
+                          }
+                        },
+                        child: const Text('Select'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final name = nameController.text.trim();
+                    final dosage = dosageController.text.trim();
+                    if (name.isEmpty || dosage.isEmpty) {
+                      return;
+                    }
+                    final nextId =
+                        _medications.fold<int>(
+                          0,
+                          (prev, med) => med.id > prev ? med.id : prev,
+                        ) +
+                        1;
+                    final schedule = _formatTimeOfDay(context, selectedTime);
+                    final newMed = MedicationItem(
+                      id: nextId,
+                      name: name,
+                      dosage: dosage,
+                      schedule: schedule,
+                      hour: selectedTime.hour,
+                      minute: selectedTime.minute,
+                    );
+                    if (!mounted) return;
+                    this.setState(() {
+                      _medications.add(newMed);
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Add'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddMedicationDialog,
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF0F6E56),
+        child: const Icon(Icons.add),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -183,8 +321,11 @@ class _MedicationScreenState extends State<MedicationScreen> {
                 'Friday, 16 May 2026',
                 style: TextStyle(color: Color(0xFF9FE1CB), fontSize: 13),
               ),
-              const Icon(Icons.notifications_outlined,
-                  color: Color(0xFF9FE1CB), size: 24),
+              const Icon(
+                Icons.notifications_outlined,
+                color: Color(0xFF9FE1CB),
+                size: 24,
+              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -263,11 +404,15 @@ class _MedicationScreenState extends State<MedicationScreen> {
   }
 
   Widget _buildMedicationCard(MedicationItem med) {
-    final color = med.isTaken ? const Color(0xFF0F6E56) : const Color(0xFF854F0B);
-    final bgColor =
-        med.isTaken ? const Color(0xFFF0FAF6) : const Color(0xFFFAEEDA);
-    final badgeColor =
-        med.isTaken ? const Color(0xFF9FE1CB) : const Color(0xFFFAC775);
+    final color = med.isTaken
+        ? const Color(0xFF0F6E56)
+        : const Color(0xFF854F0B);
+    final bgColor = med.isTaken
+        ? const Color(0xFFF0FAF6)
+        : const Color(0xFFFAEEDA);
+    final badgeColor = med.isTaken
+        ? const Color(0xFF9FE1CB)
+        : const Color(0xFFFAC775);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -288,7 +433,9 @@ class _MedicationScreenState extends State<MedicationScreen> {
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: badgeColor,
                         borderRadius: BorderRadius.circular(4),
@@ -308,12 +455,16 @@ class _MedicationScreenState extends State<MedicationScreen> {
                 Text(
                   med.name,
                   style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w500, color: color),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: color,
+                  ),
                 ),
-                Text(med.dosage,
-                    style: TextStyle(fontSize: 14, color: color)),
-                Text(med.schedule,
-                    style: TextStyle(fontSize: 14, color: color)),
+                Text(med.dosage, style: TextStyle(fontSize: 14, color: color)),
+                Text(
+                  med.schedule,
+                  style: TextStyle(fontSize: 14, color: color),
+                ),
               ],
             ),
           ),
@@ -337,7 +488,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
               ),
               const SizedBox(height: 6),
               GestureDetector(
-                onTap: () => _scheduleAlarm(med),
+                onTap: () => _toggleAlarm(med),
                 child: Container(
                   width: 36,
                   height: 36,
@@ -345,10 +496,19 @@ class _MedicationScreenState extends State<MedicationScreen> {
                     color: Colors.white,
                     shape: BoxShape.circle,
                     border: Border.all(
-                        color: const Color(0xFF854F0B), width: 1.5),
+                      color: med.isAlarmSet
+                          ? const Color(0xFF0F6E56)
+                          : const Color(0xFF854F0B),
+                      width: 1.5,
+                    ),
                   ),
-                  child: const Icon(Icons.alarm,
-                      color: Color(0xFF854F0B), size: 18),
+                  child: Icon(
+                    Icons.alarm,
+                    color: med.isAlarmSet
+                        ? const Color(0xFF0F6E56)
+                        : const Color(0xFF854F0B),
+                    size: 18,
+                  ),
                 ),
               ),
             ],
@@ -371,8 +531,9 @@ class _MedicationScreenState extends State<MedicationScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF0F6E56),
           padding: const EdgeInsets.symmetric(vertical: 18),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );

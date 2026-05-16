@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class _CardStyle {
   final Color color;
@@ -53,14 +54,28 @@ class HomeScreen extends StatelessWidget {
   String _formatTime(dynamic time) {
     if (time == null) return '';
     if (time is Timestamp) {
-      final dt = time.toDate();
-      final hour = dt.hour;
-      final minute = dt.minute.toString().padLeft(2, '0');
-      final period = hour >= 12 ? 'pm' : 'am';
-      final h = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
-      return '$h:$minute $period';
+      return _formatDateTime(time.toDate());
+    }
+    if (time is String) {
+      final dt = DateTime.tryParse(time);
+      if (dt != null) return _formatDateTime(dt);
+      return time;
     }
     return time.toString();
+  }
+
+  String _formatDateTime(DateTime dt) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final month = months[dt.month - 1];
+    final day = dt.day;
+    final hour = dt.hour;
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = hour >= 12 ? 'pm' : 'am';
+    final h = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    return '$month $day, $h:$minute $period';
   }
 
   @override
@@ -162,7 +177,10 @@ class HomeScreen extends StatelessWidget {
     final category = (data['category'] as String?) ?? '';
     final location = (data['location'] as String?) ?? '';
     final summary = (data['summary'] as String?) ?? '';
-    final timeStr = _formatTime(data['time']);
+    final tsDate = (data['timestamp'] as Timestamp?)?.toDate();
+    final timeStr = tsDate != null
+        ? _formatDateTime(tsDate)
+        : _formatTime(data['time']);
     final acknowledged = (data['acknowledged'] as bool?) ?? false;
     final style = _styleForCategory(category);
 
@@ -191,9 +209,9 @@ class HomeScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Friday, 15 May 2026',
-                style: TextStyle(color: Color(0xFF9FE1CB), fontSize: 13),
+              Text(
+                DateFormat('EEEE, d MMMM yyyy').format(DateTime.now()),
+                style: const TextStyle(color: Color(0xFF9FE1CB), fontSize: 13),
               ),
               const Icon(Icons.notifications_outlined,
                   color: Color(0xFF9FE1CB), size: 24),

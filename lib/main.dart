@@ -5,9 +5,10 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'firebase_options.dart';
 import 'screens/home_screen.dart';
+import 'screens/appointment_screen.dart';
 import 'screens/medication_screen.dart';
-import 'screens/family_screen.dart';
 import 'screens/help_screen.dart';
+import 'services/notification_service.dart';
 
 final flnPlugin = FlutterLocalNotificationsPlugin();
 
@@ -19,6 +20,16 @@ Future<void> _initNotifications() async {
   await flnPlugin
       .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
       ?.requestNotificationsPermission();
+
+  await flnPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'reminders_channel',
+          'Reminders',
+          importance: Importance.high,
+        ),
+      );
 }
 
 void main() async {
@@ -27,6 +38,7 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await _initNotifications();
+  await NotificationService.scheduleAllReminders();
   runApp(const MyApp());
 }
 
@@ -63,8 +75,8 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final screens = [
       HomeScreen(onNavigateToBantuan: () => _goTo(3)),
+      const AppointmentScreen(),
       const MedicationScreen(),
-      const FamilyScreen(),
       const HelpScreen(),
     ];
     return Scaffold(
@@ -79,12 +91,11 @@ class _AppShellState extends State<AppShell> {
             const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.event), label: 'Appointment'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.medication), label: 'Medication'),
+            icon: Icon(Icons.medication), label: 'Medication'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.people), label: 'Family'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.health_and_safety), label: 'Help'),
+            icon: Icon(Icons.health_and_safety), label: 'Help'),
         ],
       ),
     );
