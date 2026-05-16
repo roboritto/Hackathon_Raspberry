@@ -7,7 +7,7 @@
 
 **IngatKu** (from Malay *Ingat* = Remember) is a mobile application designed to help elderly and people with disabilities (PWD) never miss hospital appointments or medication doses. The app **automatically captures** incoming notification alerts from hospital systems, clinic portals, or caregiver apps and instantly creates or updates reminders inside IngatKu – no manual entry needed.
 
-> 🏆 Built for [Hackathon Name] – tackling accessibility & healthcare adherence.
+> 🏆 Built for ElectroHack 2.0 – tackling accessibility & healthcare adherence.
 
 ---
 
