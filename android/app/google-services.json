@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "217142638108",
+    "project_id": "ingatku-bc503",
+    "storage_bucket": "ingatku-bc503.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:217142638108:android:f0997fa1a181e74b29d1d9",
+        "android_client_info": {
+          "package_name": "com.example.ingatku"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtQfd39JaFi4G3GT4vtyKr1FYqMsbuXCE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
