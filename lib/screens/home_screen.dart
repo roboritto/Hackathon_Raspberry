@@ -128,7 +128,32 @@ class HomeScreen extends StatelessWidget {
                             ),
                           );
                         }
-                        final docs = snapshot.data?.docs ?? [];
+                        final now = DateTime.now();
+                        final docs = List.of(snapshot.data?.docs ?? [])
+                          ..sort((a, b) {
+                            final aTs =
+                                (a.data() as Map<String, dynamic>)['timestamp'];
+                            final bTs =
+                                (b.data() as Map<String, dynamic>)['timestamp'];
+                            final aDt =
+                                aTs is Timestamp ? aTs.toDate() : null;
+                            final bDt =
+                                bTs is Timestamp ? bTs.toDate() : null;
+                            final aIsFuture =
+                                aDt != null && aDt.isAfter(now);
+                            final bIsFuture =
+                                bDt != null && bDt.isAfter(now);
+                            // Future items before past/null items
+                            if (aIsFuture != bIsFuture) {
+                              return aIsFuture ? -1 : 1;
+                            }
+                            // Null timestamps sink to the end
+                            if (aDt == null && bDt == null) return 0;
+                            if (aDt == null) return 1;
+                            if (bDt == null) return -1;
+                            // Within the same group, ascending (soonest first)
+                            return aDt.compareTo(bDt);
+                          });
                         if (docs.isEmpty) {
                           return Container(
                             width: double.infinity,
@@ -182,6 +207,7 @@ class HomeScreen extends StatelessWidget {
         ? _formatDateTime(tsDate)
         : _formatTime(data['time']);
     final acknowledged = (data['acknowledged'] as bool?) ?? false;
+    final isPast = tsDate != null && tsDate.isBefore(DateTime.now());
     final style = _styleForCategory(category);
 
     final subtitle = [timeStr, summary].where((s) => s.isNotEmpty).join(' — ');
@@ -195,6 +221,7 @@ class HomeScreen extends StatelessWidget {
       bgColor: style.bgColor,
       badgeColor: style.badgeColor,
       isDone: acknowledged,
+      isPast: isPast,
     );
   }
 
@@ -244,72 +271,95 @@ class HomeScreen extends StatelessWidget {
     required Color bgColor,
     required Color badgeColor,
     required bool isDone,
+    bool isPast = false,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: bgColor,
-        border: Border(left: BorderSide(color: color, width: 4)),
-      ),
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(icon, size: 16, color: color),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: badgeColor,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        type,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: color,
+    return Opacity(
+      opacity: isPast ? 0.5 : 1.0,
+      child: Container(
+        decoration: BoxDecoration(
+          color: bgColor,
+          border: Border(left: BorderSide(color: color, width: 4)),
+        ),
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(icon, size: 16, color: color),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: badgeColor,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          type,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: color,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: color,
+                      if (isPast) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFEBEB),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Passed',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFFA32D2D),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                ),
-                if (subtitle.isNotEmpty)
+                  const SizedBox(height: 6),
                   Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 14, color: color),
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: color,
+                    ),
                   ),
-              ],
+                  if (subtitle.isNotEmpty)
+                    Text(
+                      subtitle,
+                      style: TextStyle(fontSize: 14, color: color),
+                    ),
+                ],
+              ),
             ),
-          ),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: isDone ? Colors.grey : color,
-              shape: BoxShape.circle,
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isPast || isDone ? Colors.grey : color,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isDone ? Icons.check : Icons.access_time,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
-            child: Icon(
-              isDone ? Icons.check : Icons.access_time,
-              color: Colors.white,
-              size: 18,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -325,14 +375,39 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.calendar_month,
-            label: 'Appointment',
-            value: '1 tomorrow',
-          ),
-        ),
+        Expanded(child: _buildAppointmentStatCard()),
       ],
+    );
+  }
+
+  Widget _buildAppointmentStatCard() {
+    final now = DateTime.now();
+    final tomorrowStart = DateTime(now.year, now.month, now.day + 1);
+    final tomorrowEnd = DateTime(now.year, now.month, now.day + 2);
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('reminders')
+          .snapshots(),
+      builder: (context, snapshot) {
+        int count = 0;
+        if (snapshot.hasData) {
+          count = snapshot.data!.docs.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final category = (data['category'] as String?) ?? '';
+            if (category.toLowerCase() != 'appointment') return false;
+            final ts = data['timestamp'] ?? data['time'];
+            if (ts == null || ts is! Timestamp) return false;
+            final dt = ts.toDate();
+            return !dt.isBefore(tomorrowStart) && dt.isBefore(tomorrowEnd);
+          }).length;
+        }
+        return _buildStatCard(
+          icon: Icons.calendar_month,
+          label: 'Appointment',
+          value: count == 0 ? 'None tomorrow' : '$count tomorrow',
+        );
+      },
     );
   }
 

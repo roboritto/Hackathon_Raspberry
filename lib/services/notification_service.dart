@@ -51,6 +51,40 @@ class NotificationService {
 
       await _schedule(id: id, title: category, body: body, when: scheduledTime);
       debugPrint('[NotificationService] Scheduled notification — id: $id, time: $scheduledTime');
+
+      final now = tz.TZDateTime.now(tz.local);
+
+      // Night before at 9:00 PM
+      final dayBefore = scheduledTime.subtract(const Duration(days: 1));
+      final nightBefore = tz.TZDateTime(
+        tz.local,
+        dayBefore.year,
+        dayBefore.month,
+        dayBefore.day,
+        21,
+        0,
+      );
+      if (nightBefore.isAfter(now)) {
+        await _schedule(
+          id: id + 2000,
+          title: "Tomorrow's Reminder",
+          body: body,
+          when: nightBefore,
+        );
+        debugPrint('[NotificationService] Scheduled night-before notification — id: ${id + 2000}, time: $nightBefore');
+      }
+
+      // One hour before
+      final oneHourBefore = scheduledTime.subtract(const Duration(hours: 1));
+      if (oneHourBefore.isAfter(now)) {
+        await _schedule(
+          id: id + 3000,
+          title: 'In 1 Hour',
+          body: body,
+          when: oneHourBefore,
+        );
+        debugPrint('[NotificationService] Scheduled 1-hour-before notification — id: ${id + 3000}, time: $oneHourBefore');
+      }
     }
   }
 
@@ -127,9 +161,12 @@ class NotificationService {
       'reminders_channel',
       'Reminders',
       channelDescription: 'Scheduled reminder notifications',
-      importance: Importance.high,
+      importance: Importance.max,
       priority: Priority.high,
+      fullScreenIntent: true,
       playSound: true,
+      enableVibration: true,
+      visibility: NotificationVisibility.public,
     );
 
     await flnPlugin.zonedSchedule(

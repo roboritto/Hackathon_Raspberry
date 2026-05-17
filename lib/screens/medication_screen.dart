@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:intl/intl.dart';
 import 'package:timezone/timezone.dart' as tz;
 import '../main.dart';
 
@@ -317,9 +318,9 @@ class _MedicationScreenState extends State<MedicationScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Friday, 16 May 2026',
-                style: TextStyle(color: Color(0xFF9FE1CB), fontSize: 13),
+              Text(
+                DateFormat('EEEE, d MMMM yyyy').format(DateTime.now()),
+                style: const TextStyle(color: Color(0xFF9FE1CB), fontSize: 13),
               ),
               const Icon(
                 Icons.notifications_outlined,

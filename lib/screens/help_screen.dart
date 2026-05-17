@@ -117,11 +117,11 @@ class _HelpScreenState extends State<HelpScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text(
-          'Book a Carer',
+          'Book a Cabby',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         content: const Text(
-          'A carer will arrive within 30 minutes. Would you like to proceed with the booking?',
+          'A cabby will arrive within 30 minutes. Would you like to proceed with the booking?',
           style: TextStyle(fontSize: 16, height: 1.5),
         ),
         actions: [
@@ -138,7 +138,7 @@ class _HelpScreenState extends State<HelpScreen> {
                   setState(() => _isBooking = false);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text("Carer booked! They're on their way."),
+                      content: Text("Cabby booked! They're on their way."),
                       backgroundColor: Color(0xFF0F6E56),
                     ),
                   );
@@ -186,7 +186,7 @@ class _HelpScreenState extends State<HelpScreen> {
                     const SizedBox(height: 12),
                     ..._contacts.map(_buildContactCard),
                     const SizedBox(height: 24),
-                    _buildParentSitterSection(),
+                    _buildCabbySection(),
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -404,12 +404,12 @@ class _HelpScreenState extends State<HelpScreen> {
     );
   }
 
-  Widget _buildParentSitterSection() {
+  Widget _buildCabbySection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'BOOK A CARER',
+          'BOOK A CABBY',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
@@ -446,14 +446,14 @@ class _HelpScreenState extends State<HelpScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'ParentSitter',
+                          'Cabby',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         Text(
-                          'Certified carers for the elderly',
+                          'Certified cabbies for the elderly',
                           style:
                               TextStyle(fontSize: 13, color: Colors.grey),
                         ),
@@ -464,7 +464,7 @@ class _HelpScreenState extends State<HelpScreen> {
               ),
               const SizedBox(height: 14),
               const Text(
-                'Need companionship or help at home? Our carers are ready to assist you anytime.',
+                'Need companionship or help at home? Our cabbies are ready to assist you anytime.',
                 style: TextStyle(
                     fontSize: 15, color: Colors.black87, height: 1.5),
               ),
@@ -485,7 +485,7 @@ class _HelpScreenState extends State<HelpScreen> {
                       : const Icon(Icons.calendar_month,
                           color: Colors.white, size: 22),
                   label: Text(
-                    _isBooking ? 'Booking...' : 'Book a Carer',
+                    _isBooking ? 'Booking...' : 'Book a Cabby',
                     style: const TextStyle(
                         fontSize: 20, color: Colors.white),
                   ),
