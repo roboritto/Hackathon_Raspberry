@@ -69,3 +69,6 @@ IngatKu solves this by **listening to existing notifications** (with user permis
 ---
 
 ## 🏗 Architecture (Simplified)
+
+<img width="1920" height="1080" alt="Electrohack 2 0 (1)" src="https://github.com/user-attachments/assets/2167dd54-918b-451a-9ae5-6cbf1c1f983c" />
+
