@@ -6,7 +6,8 @@ from firebase_admin import credentials, firestore
 import os
 from dotenv import load_dotenv
 import json
-from datetime import datetime # <--- We need this for the time math!
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 # Load environment variables
 load_dotenv()
@@ -29,14 +30,14 @@ class NotificationInput(BaseModel):
 class ExtractedData(BaseModel):
     category: str
     location: str
-    timestamp: datetime  # <--- Set to datetime so FastAPI processes it correctly
+    timestamp: datetime 
     summary: str
 
 @app.post("/api/parse-notification", response_model=ExtractedData)
 async def parse_notification(data: NotificationInput):
     try:
         # 1. Grab the exact time ONLY when a request actually arrives
-        current_time_str = datetime.now().strftime("%A, %d %B %Y %H:%M:%S")
+        current_time_str = datetime.now(ZoneInfo("Asia/Kuala_Lumpur")).strftime("%A, %d %B %Y %H:%M:%S")
 
         # 2. Define the prompt INSIDE the endpoint so it grabs the fresh time
         system_prompt = f"""
@@ -69,7 +70,7 @@ async def parse_notification(data: NotificationInput):
         result_json = json.loads(response.text)
         
         # 6. Convert the AI string to a real Python datetime object
-        result_json["timestamp"] = datetime.fromisoformat(result_json["timestamp"])
+        result_json["timestamp"] = datetime.fromisoformat(result_json["timestamp"]).replace(tzinfo=ZoneInfo("Asia/Kuala_Lumpur"))
         
         # 7. SAVE TO FIREBASE! (Saves as a native Firestore Timestamp)
         db.collection("reminders").add(result_json)
