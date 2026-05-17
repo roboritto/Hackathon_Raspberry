@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(grep \"minSdkVersion\" /Users/haziqnazil/flutter/packages/flutter_tools/gradle/flutter.gradle | head -10)",
-      "Read(//Users/haziqnazil/flutter/packages/flutter_tools/gradle/**)"
-    ]
-  }
-}
